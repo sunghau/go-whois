@@ -2,24 +2,45 @@ package main
 
 import (
 	"os"
-	"fmt"
 	"net"
 	"time"
 	"io/ioutil"
+	"github.com/urfave/cli"
+	"fmt"
+	"github.com/asaskevich/govalidator"
 )
 
 func main() {
-	if len(os.Args) != 2 {
-		fmt.Println("Command syntax: go-whois [ip]")
-		return
-	}
+	app := cli.NewApp()
+	app.Name = "go-whois"
+	app.Usage = "a WHOIS parser tool"
+	app.Version = "0.1"
+	app.Action = run
 
-	d, err := GetWhoIS(os.Args[1], "whois.apnic.net")
-	if err != nil {
-		fmt.Println("GetWhoIS failed:", err)
+	app.Run(os.Args)
+}
+
+func run(c *cli.Context) error {
+	if len(c.Args()) > 0 && checkArgsIsIP(c.Args()){
+		for i := 0; i < len(c.Args()); i++ {
+			ip := c.Args().Get(i)
+			ret, _ := GetWhoIS(ip, "whois.apnic.net")
+			fmt.Println(ret)
+		}
 	} else {
-		fmt.Println(d)
+		fmt.Println("go-whois: try 'go-whois --help' or 'go-whois -h' for more information ")
 	}
+	return nil
+}
+
+func checkArgsIsIP(args cli.Args) bool{
+	for i := 0; i < len(args); i++ {
+		ip := args.Get(i)
+		if !govalidator.IsIP(ip) {
+			return false
+		}
+	}
+	return true
 }
 
 func GetWhoIS(ip string, server string)(string, error){
